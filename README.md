@@ -4,12 +4,13 @@ A containerized Jupyter Lab environment with AI assistant integration, managed b
 
 ## Features
 
-- **Python 3.14** via uv base image
+- **Python 3.13** via uv base image
 - **UV package manager** with persistent cache for fast dependency management
 - **Jupyter Lab** with interactive notebooks
-- **AI Assistant** integration via jupyter-ai (OpenAI-compatible API)
+- **AI Assistant** integration via jupyter-ai-magics (Anthropic-compatible API)
   - Supports GLM 4.6 from z.ai
-  - Works with any OpenAI-compatible endpoint
+  - Auto-loads on kernel start with default model configured
+  - Works with any Anthropic-compatible or OpenAI-compatible endpoint
 - **No authentication** (local sandbox environment)
 - **Systemd user service** for lifecycle management
 - **One-command deployment** with interactive setup
@@ -50,8 +51,8 @@ Configuration is stored in `~/.config/jupyter-lab/config.toml`:
 ```toml
 [ai]
 api_key = "your-api-key"
-base_url = "https://api.z.ai/v1"
-model = "glm-4-flash"
+base_url = "https://api.z.ai/api/anthropic"
+model = "glm-4.6"
 
 [paths]
 notebooks_dir = "/home/user/Documents/jupyter"
@@ -111,12 +112,19 @@ systemctl --user status jupyter-lab
 
 ### Using AI Assistant in Jupyter
 
-The jupyter-ai extension provides AI capabilities in your notebooks:
+The jupyter-ai-magics extension provides AI capabilities in your notebooks:
 
-1. **Magic commands** in code cells:
+1. **Magic commands** in code cells (auto-loaded on kernel start):
    ```python
-   %%ai openai-chat:glm-4-flash
+   # Simple shorthand (uses default model: anthropic-chat:glm-4.6)
+   %%ai
    Explain how to use pandas DataFrames
+   ```
+
+   Or specify a different model explicitly:
+   ```python
+   %%ai anthropic-chat:glm-4.6
+   Write a function to calculate fibonacci numbers
    ```
 
 2. **Chat interface**: Click the AI chat icon in the sidebar
@@ -128,27 +136,33 @@ The jupyter-ai extension provides AI capabilities in your notebooks:
 ### Development (this repository)
 ```
 /home/kai/work/jupyter/
-├── deploy.py                    # One-command deployment script
-├── Dockerfile                   # Container definition
-├── README.md                    # This file
-├── jupyter_config_template/     # Jupyter configuration template
-│   └── jupyter_lab_config.py
+├── deploy.py                                      # One-command deployment script
+├── Dockerfile                                     # Container definition
+├── README.md                                      # This file
+├── jupyter_config_template/                       # Configuration templates
+│   ├── jupyter_lab_config.py                     # Jupyter Lab config
+│   ├── ipython_kernel_config.py                  # IPython kernel config
+│   └── ipython/profile_default/startup/
+│       └── 00-load-jupyter-ai.py                 # Auto-load AI extension
 └── .gitignore
 ```
 
 ### Deployment (on your system)
 ```
 ~/.config/jupyter-lab/
-├── config.toml                  # Deployment configuration
-└── jupyter_lab_config.py        # Jupyter configuration
+├── config.toml                                    # Deployment configuration
+├── jupyter_lab_config.py                          # Jupyter Lab config
+├── ipython_kernel_config.py                       # IPython kernel config
+└── ipython/profile_default/startup/
+    └── 00-load-jupyter-ai.py                      # Auto-loads jupyter_ai_magics
 
 ~/.local/share/jupyter-lab/
-└── .uv-cache/                   # Persistent UV cache
+└── .uv-cache/                                     # Persistent UV cache
 
 ~/.config/systemd/user/
-└── jupyter-lab.service          # Systemd service unit
+└── jupyter-lab.service                            # Systemd service unit
 
-~/Documents/jupyter/             # Your notebooks (configurable)
+~/Documents/jupyter/                               # Your notebooks (configurable)
 └── *.ipynb
 ```
 
@@ -159,9 +173,12 @@ The jupyter-ai extension provides AI capabilities in your notebooks:
 3. **Bind Mounts**:
    - Notebooks directory → `/workspace/notebooks` in container
    - UV cache → `/workspace/.uv-cache` in container
-   - Jupyter config → `/workspace/.jupyter` in container
+   - Jupyter config → `/workspace/.jupyter` in container (includes IPython startup scripts)
 4. **Systemd**: Manages container lifecycle (start on boot, restart on failure)
-5. **AI Integration**: Environment variables configure OpenAI-compatible API endpoint
+5. **AI Integration**:
+   - Environment variables configure Anthropic-compatible API endpoint
+   - IPython startup script auto-loads jupyter_ai_magics on every kernel start
+   - Default model configured for shorthand `%%ai` usage
 
 ## Using UV in the Container
 
@@ -185,13 +202,19 @@ The UV cache is persisted, so packages install quickly on subsequent runs.
 
 ### Change AI Model
 
-Edit `~/.config/jupyter-lab/jupyter_lab_config.py`:
+Edit the startup script `~/.config/jupyter-lab/ipython/profile_default/startup/00-load-jupyter-ai.py`:
 
 ```python
-c.AiExtension.default_model = "glm-4-plus"  # or any other model
+# Change the default model
+ai_magics_instance.default_language_model = "anthropic-chat:glm-4.6"  # or any other model
 ```
 
-Restart the service:
+Or edit `~/.config/jupyter-lab/jupyter_lab_config.py` for the chat interface:
+```python
+c.AiExtension.default_model = "glm-4.6"
+```
+
+Restart the service to apply changes:
 ```bash
 systemctl --user restart jupyter-lab
 ```
@@ -222,8 +245,10 @@ Option 2: Add to Dockerfile (permanent):
 RUN uv pip install --system \
     jupyterlab \
     jupyter-ai \
+    jupyter-ai-magics \
     ipykernel \
     openai \
+    "langchain-anthropic<1.0" \
     your-package-here
 ```
 
@@ -234,14 +259,16 @@ uv run deploy.py --rebuild
 
 ### Use a Different AI Provider
 
-The setup works with any OpenAI-compatible API. Just update the configuration:
+The setup works with any Anthropic-compatible or OpenAI-compatible API. Just update the configuration:
 
 ```toml
 [ai]
 api_key = "your-key"
-base_url = "https://api.provider.com/v1"
+base_url = "https://api.provider.com/v1"  # or /api/anthropic for Anthropic-compatible
 model = "model-name"
 ```
+
+Note: If using OpenAI-compatible endpoints, you may need to install `langchain-openai` in the container.
 
 ## Troubleshooting
 
@@ -274,8 +301,9 @@ uv run deploy.py --rebuild
 ### AI assistant not working
 
 1. Check API key is set: `cat ~/.config/jupyter-lab/config.toml`
-2. Check API endpoint is accessible: `curl -I https://api.z.ai/v1`
-3. View container logs: `journalctl --user -u jupyter-lab -f`
+2. Check API endpoint is accessible: `curl -I https://api.z.ai/api/anthropic`
+3. Verify extension is loaded: In a notebook, run `'ai' in get_ipython().magics_manager.magics.get('cell', {})`
+4. View container logs: `journalctl --user -u jupyter-lab -f`
 
 ## Development
 
@@ -290,10 +318,11 @@ podman build -t localhost/jupyter-lab:latest .
 ```bash
 podman run --rm -it \
   --net=host \
-  -e OPENAI_API_KEY="your-key" \
-  -e OPENAI_BASE_URL="https://api.z.ai/v1" \
+  -e ANTHROPIC_API_KEY="your-key" \
+  -e ANTHROPIC_BASE_URL="https://api.z.ai/api/anthropic" \
   -v ~/Documents/jupyter:/workspace/notebooks:Z \
   -v ~/.local/share/jupyter-lab/.uv-cache:/workspace/.uv-cache:Z \
+  -v ~/.config/jupyter-lab:/workspace/.jupyter:Z \
   localhost/jupyter-lab:latest
 ```
 
