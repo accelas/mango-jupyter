@@ -121,6 +121,17 @@ The jupyter-ai-magics extension provides AI capabilities in your notebooks:
    Explain how to use pandas DataFrames
    ```
 
+   For longer responses (GLM-4.6 supports up to 128k output tokens):
+   ```python
+   # Request longer output with max_tokens parameter
+   %%ai -m '{"max_tokens": 16384}'
+   Write a comprehensive tutorial on ANOVA with examples
+
+   # For very long responses (up to 128000 tokens)
+   %%ai -m '{"max_tokens": 32768}'
+   Create a detailed data science guide
+   ```
+
    Or specify a different model explicitly:
    ```python
    %%ai anthropic-chat:glm-4.6
