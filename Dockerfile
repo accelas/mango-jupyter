@@ -11,8 +11,8 @@ RUN uv pip install --system \
     jupyter-ai-magics \
     ipykernel \
     openai \
-    "langchain-openai<1.0" \
-    "langchain-anthropic<1.0"
+    langchain-openai \
+    langchain-anthropic
 
 # Expose Jupyter Lab port
 EXPOSE 8888

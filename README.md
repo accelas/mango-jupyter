@@ -248,7 +248,8 @@ RUN uv pip install --system \
     jupyter-ai-magics \
     ipykernel \
     openai \
-    "langchain-anthropic<1.0" \
+    langchain-anthropic \
+    langchain-openai \
     your-package-here
 ```
 
