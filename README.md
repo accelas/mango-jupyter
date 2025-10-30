@@ -116,23 +116,24 @@ The jupyter-ai-magics extension provides AI capabilities in your notebooks:
 
 1. **Magic commands** in code cells (auto-loaded on kernel start):
    ```python
-   # Simple shorthand (uses default model: anthropic-chat:glm-4.6)
+   # Simple shorthand with default 16k token limit
+   # (uses: anthropic-chat:glm-4.6, max_tokens: 16384)
    %%ai
    Explain how to use pandas DataFrames
    ```
 
-   For longer responses (GLM-4.6 supports up to 128k output tokens):
+   The default max_tokens is set to **16384**, which provides detailed responses without truncation. For even longer responses (GLM-4.6 supports up to 128k):
    ```python
-   # Request longer output with max_tokens parameter
-   %%ai -m '{"max_tokens": 16384}'
+   # For very long responses (32k tokens)
+   %%ai -m '{"max_tokens": 32768}'
    Write a comprehensive tutorial on ANOVA with examples
 
-   # For very long responses (up to 128000 tokens)
-   %%ai -m '{"max_tokens": 32768}'
-   Create a detailed data science guide
+   # For extremely long responses (64k tokens)
+   %%ai -m '{"max_tokens": 65536}'
+   Create a detailed data science textbook chapter
    ```
 
-   Or specify a different model explicitly:
+   Specify a different model explicitly:
    ```python
    %%ai anthropic-chat:glm-4.6
    Write a function to calculate fibonacci numbers

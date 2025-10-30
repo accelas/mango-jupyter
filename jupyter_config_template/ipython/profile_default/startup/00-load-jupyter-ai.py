@@ -16,10 +16,9 @@ try:
         # Set default model
         ai_magics_instance.default_language_model = "anthropic-chat:glm-4.6"
 
-        # Note: To use higher max_tokens, pass -m parameter in the cell:
-        # %%ai -m '{"max_tokens": 16384}'
-        # GLM-4.6 supports up to 128k output tokens (128000)
-        # Default is typically much lower (~1024-2048)
+        # Set default max_tokens to 16384 (GLM-4.6 supports up to 128k)
+        # This applies to all %%ai calls unless overridden with -m parameter
+        ai_magics_instance.default_model_parameters = {"max_tokens": 16384}
 
 except Exception as e:
     print(f"Error configuring jupyter_ai_magics: {e}")
