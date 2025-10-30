@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb
+
+# UV / uv cache
+.uv-cache/
+uv.lock
+
+# Configuration files with secrets
+config.toml
+.env
+*.key
+*.pem
+
+# Notebooks (add to git separately if needed)
+notebooks/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Logs
+*.log
