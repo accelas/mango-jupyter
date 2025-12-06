@@ -9,10 +9,18 @@ RUN uv pip install --system \
     jupyterlab \
     jupyter-ai \
     jupyter-ai-magics \
+    jupyter-collaboration \
     ipykernel \
     openai \
     langchain-openai \
-    langchain-anthropic
+    langchain-anthropic \
+    # Data analysis dependencies
+    pandas \
+    numpy \
+    psycopg2-binary \
+    duckdb \
+    matplotlib \
+    seaborn
 
 # Expose Jupyter Lab port
 EXPOSE 8888
